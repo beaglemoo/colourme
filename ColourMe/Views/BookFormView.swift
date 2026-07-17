@@ -64,6 +64,28 @@ struct BookFormView: View {
                             .frame(maxWidth: 320)
                     }
 
+                    LabeledContent("Print quality") {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Picker("", selection: $viewModel.qualityTier) {
+                                ForEach(QualityTier.allCases) { tier in
+                                    Text(tier.displayName).tag(tier)
+                                }
+                            }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+
+                            Text(viewModel.qualityTier.subtitle)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: 320)
+                    }
+
+                    LabeledContent("Cover") {
+                        Toggle("Illustrated cover page", isOn: $viewModel.illustratedCover)
+                            .toggleStyle(.checkbox)
+                    }
+
                     LabeledContent("Model") {
                         VStack(alignment: .leading, spacing: 4) {
                             Picker("", selection: $viewModel.selectedModelID) {
@@ -71,7 +93,7 @@ struct BookFormView: View {
                                     Text(viewModel.selectedModelID).tag(viewModel.selectedModelID)
                                 } else {
                                     ForEach(viewModel.availableModels) { model in
-                                        if let price = model.priceLabel {
+                                        if let price = model.priceLabel(tier: viewModel.qualityTier) {
                                             Text("\(model.displayName)  \(price)").tag(model.id)
                                         } else {
                                             Text(model.displayName).tag(model.id)

@@ -6,7 +6,7 @@ enum PDFBuilder {
     static let a4 = CGRect(x: 0, y: 0, width: 595.28, height: 841.89)
     static let margin: CGFloat = 36
 
-    static func buildPDF(spec: BookSpec, pages: [GeneratedPage]) throws -> Data {
+    static func buildPDF(spec: BookSpec, pages: [GeneratedPage], coverImage: Data? = nil) throws -> Data {
         let data = NSMutableData()
         var mediaBox = a4
         guard let consumer = CGDataConsumer(data: data as CFMutableData),
@@ -14,7 +14,7 @@ enum PDFBuilder {
             throw AppError.decoding("Could not create PDF context")
         }
 
-        drawCover(in: ctx, spec: spec)
+        drawCover(in: ctx, spec: spec, coverImage: coverImage)
 
         for page in pages {
             ctx.beginPDFPage(nil)
@@ -35,7 +35,7 @@ enum PDFBuilder {
 
     // MARK: - Cover
 
-    private static func drawCover(in ctx: CGContext, spec: BookSpec) {
+    private static func drawCover(in ctx: CGContext, spec: BookSpec, coverImage: Data?) {
         ctx.beginPDFPage(nil)
 
         ctx.setStrokeColor(NSColor.black.cgColor)
@@ -45,11 +45,25 @@ enum PDFBuilder {
         ctx.addPath(path)
         ctx.strokePath()
 
-        drawText(spec.title, font: .systemFont(ofSize: 42, weight: .bold), in: ctx,
-                 centeredAt: CGPoint(x: a4.midX, y: a4.height * 0.62),
-                 maxWidth: a4.width - margin * 4)
-        drawText("Colour me in!", font: .systemFont(ofSize: 20, weight: .medium), in: ctx,
-                 centeredAt: CGPoint(x: a4.midX, y: a4.height * 0.32))
+        if let coverImage, let image = cgImage(from: coverImage) {
+            // Artwork fills the lower two thirds; title sits above it.
+            let artArea = CGRect(
+                x: margin * 2, y: margin * 2,
+                width: a4.width - margin * 4, height: a4.height * 0.58
+            )
+            let imageSize = CGSize(width: image.width, height: image.height)
+            ctx.draw(image, in: aspectFit(imageSize, into: artArea))
+
+            drawText(spec.title, font: .systemFont(ofSize: 38, weight: .bold), in: ctx,
+                     centeredAt: CGPoint(x: a4.midX, y: a4.height * 0.84),
+                     maxWidth: a4.width - margin * 4)
+        } else {
+            drawText(spec.title, font: .systemFont(ofSize: 42, weight: .bold), in: ctx,
+                     centeredAt: CGPoint(x: a4.midX, y: a4.height * 0.62),
+                     maxWidth: a4.width - margin * 4)
+            drawText("Colour me in!", font: .systemFont(ofSize: 20, weight: .medium), in: ctx,
+                     centeredAt: CGPoint(x: a4.midX, y: a4.height * 0.32))
+        }
 
         ctx.endPDFPage()
     }

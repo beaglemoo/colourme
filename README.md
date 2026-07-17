@@ -33,12 +33,14 @@ Build and run (Cmd+R), then open Settings (Cmd+,) and paste your OpenRouter API 
 
 ## Usage
 
-1. Enter a theme (dinosaurs, unicorns, space...)
-2. Choose the number of pages (4 to 24) and a complexity level (Toddler, Young child, Older child)
-3. Optionally add a child's name for the cover ("Ellie's Dinosaur Colouring Book")
-4. Pick an image model - the list is fetched live from OpenRouter; the default is Gemini 2.5 Flash Image (roughly $0.03 per page)
+1. Enter a theme (dinosaurs, unicorns, capybaras...)
+2. Choose the number of pages (4 to 24), a complexity level (Simple to Intricate), and a print quality (Draft, Standard, Fine)
+3. Optionally add a child's name and an illustrated cover
+4. Pick an image model - the list is fetched live from OpenRouter with a per-page price estimate next to each model; the default is GPT Image 1 Mini (about 1 cent per page at Standard, a third of that at Draft)
 5. Generate, review the preview grid, regenerate any page you don't like
-6. Export PDF and print at A4
+6. Export the PDF or print directly at A4
+
+Every generated book is archived automatically in the app's Library, where you can reopen, re-export, print, or move pages between books. Estimates are refined from your actual billed costs after the first generation with any model.
 
 ## Architecture
 

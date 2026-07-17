@@ -18,9 +18,18 @@ struct LibraryView: View {
                             viewModel.openSavedBook(book)
                         } label: {
                             HStack {
-                                Image(systemName: "book.closed")
-                                    .font(.title2)
-                                    .foregroundStyle(.secondary)
+                                if let thumb = BookStore.firstPageImage(for: book), let nsImage = NSImage(data: thumb) {
+                                    Image(nsImage: nsImage)
+                                        .resizable()
+                                        .aspectRatio(contentMode: .fill)
+                                        .frame(width: 44, height: 58)
+                                        .clipShape(.rect(cornerRadius: 6))
+                                } else {
+                                    Image(systemName: "book.closed")
+                                        .font(.title2)
+                                        .foregroundStyle(.secondary)
+                                        .frame(width: 44, height: 58)
+                                }
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(book.title)
                                         .font(.headline)
@@ -45,12 +54,27 @@ struct LibraryView: View {
                 .scrollContentBackground(.hidden)
             }
         }
+        .safeAreaInset(edge: .bottom) {
+            if !viewModel.savedBooks.isEmpty {
+                Text(String(format: "%d books  Total spent: $%.2f", viewModel.savedBooks.count, viewModel.totalSpend))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.vertical, 8)
+            }
+        }
         .toolbar {
             ToolbarItem(placement: .navigation) {
                 Button {
                     viewModel.startOver()
                 } label: {
                     Label("New Book", systemImage: "arrow.backward")
+                }
+            }
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    viewModel.revealArchiveInFinder()
+                } label: {
+                    Label("Reveal in Finder", systemImage: "folder")
                 }
             }
         }

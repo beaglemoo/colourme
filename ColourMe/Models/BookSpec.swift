@@ -6,6 +6,8 @@ struct BookSpec: Sendable {
     var complexity: ComplexityLevel
     var childName: String?
     var modelID: String
+    var qualityTier: QualityTier = .standard
+    var illustratedCover = true
 
     var title: String {
         let themeTitle = theme.trimmingCharacters(in: .whitespacesAndNewlines).capitalized

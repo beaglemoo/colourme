@@ -57,6 +57,14 @@ struct SavedBookView: View {
                     Label("Library", systemImage: "arrow.backward")
                 }
             }
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    viewModel.printOpenedBook()
+                } label: {
+                    Label("Print", systemImage: "printer")
+                }
+                .disabled(viewModel.openedBookImages.isEmpty)
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     viewModel.exportOpenedBookPDF()

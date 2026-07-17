@@ -14,6 +14,7 @@ struct OpenRouterClient: Sendable {
                     id: $0.id,
                     name: $0.name,
                     supportedParameters: $0.supportedParameters ?? [],
+                    resolutionOptions: $0.resolutionOptions,
                     pricePerImageToken: pricing[$0.id]
                 )
             }
@@ -62,15 +63,17 @@ struct OpenRouterClient: Sendable {
         let cost: Double?
     }
 
-    func generateImage(model: ImageModel, prompt: String, seed: Int?) async throws -> GeneratedImage {
+    func generateImage(model: ImageModel, prompt: String, tier: QualityTier, seed: Int?) async throws -> GeneratedImage {
         var body = ImagesRequestBody(model: model.id, prompt: prompt)
         if model.supports("output_format") { body.outputFormat = "png" }
         if model.supports("aspect_ratio") { body.aspectRatio = Constants.imageAspectRatio }
-        if model.supports("resolution") { body.resolution = Constants.imageResolution }
+        if model.supports("resolution") {
+            body.resolution = tier.resolution(from: model.resolutionOptions.isEmpty ? ["1K"] : model.resolutionOptions)
+        }
         if model.supports("seed") { body.seed = seed }
-        // Pin quality: "auto" can silently pick high, which costs ~4x for the
-        // same line art. Medium is plenty for A4 colouring pages.
-        if model.supports("quality") { body.quality = "medium" }
+        // Pin quality explicitly: "auto" can silently pick high, which costs
+        // ~4x for the same line art.
+        if model.supports("quality") { body.quality = tier.openAIQuality }
 
         let request = try makeRequest(path: "images", method: "POST", body: body)
         let response: ImagesResponse = try await send(request, retryOnRateLimit: true)

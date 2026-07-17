@@ -1,6 +1,7 @@
 import AppKit
 import Foundation
 import Observation
+import PDFKit
 import UniformTypeIdentifiers
 
 @MainActor
@@ -20,6 +21,10 @@ final class BookFormViewModel {
     var complexity: ComplexityLevel = .standard
     var childName = ""
     var selectedModelID = UserDefaults.standard.string(forKey: "defaultModelID") ?? Constants.defaultImageModelID
+    var qualityTier: QualityTier = QualityTier(
+        rawValue: UserDefaults.standard.string(forKey: "qualityTier") ?? ""
+    ) ?? .standard
+    var illustratedCover = true
     var availableModels: [ImageModel] = []
     var errorMessage: String?
 
@@ -46,7 +51,9 @@ final class BookFormViewModel {
             pageCount: pageCount,
             complexity: complexity,
             childName: childName.isEmpty ? nil : childName,
-            modelID: selectedModelID
+            modelID: selectedModelID,
+            qualityTier: qualityTier,
+            illustratedCover: illustratedCover
         )
     }
 
@@ -55,8 +62,11 @@ final class BookFormViewModel {
     }
 
     var estimatedBookCostLabel: String? {
-        guard let perPage = selectedModel.estimatedPricePerPage else { return nil }
-        return String(format: "Estimated cost: ~$%.2f for %d pages", perPage * Double(pageCount), pageCount)
+        guard let perPage = selectedModel.estimatedPricePerPage(tier: qualityTier) else { return nil }
+        let billedPages = pageCount + (illustratedCover ? 1 : 0)
+        let learned = PriceMemory.observedCost(modelID: selectedModelID, tier: qualityTier) != nil
+        let prefix = learned ? "Estimated cost (from your usage)" : "Estimated cost"
+        return String(format: "%@: ~$%.2f for %d pages", prefix, perPage * Double(billedPages), pageCount)
     }
 
     func loadModels() async {
@@ -79,6 +89,7 @@ final class BookFormViewModel {
     func generate() {
         errorMessage = nil
         UserDefaults.standard.set(selectedModelID, forKey: "defaultModelID")
+        UserDefaults.standard.set(qualityTier.rawValue, forKey: "qualityTier")
         stage = .generating
         currentBook = nil
         let spec = spec
@@ -108,9 +119,13 @@ final class BookFormViewModel {
         guard generator.pages.contains(where: { $0.status.imageData != nil }) else { return }
         do {
             if let book = currentBook {
-                currentBook = try BookStore.update(book, pages: generator.pages, cost: generator.totalCost)
+                currentBook = try BookStore.update(
+                    book, pages: generator.pages, cost: generator.totalCost, coverImage: generator.coverImage
+                )
             } else {
-                currentBook = try BookStore.save(spec: spec, pages: generator.pages, cost: generator.totalCost)
+                currentBook = try BookStore.save(
+                    spec: spec, pages: generator.pages, cost: generator.totalCost, coverImage: generator.coverImage
+                )
             }
         } catch {
             errorMessage = "Could not archive the book: \(error.localizedDescription)"
@@ -156,29 +171,68 @@ final class BookFormViewModel {
         }
     }
 
-    // MARK: - PDF export
+    var totalSpend: Double {
+        savedBooks.reduce(0) { $0 + $1.cost }
+    }
+
+    func revealArchiveInFinder() {
+        NSWorkspace.shared.activateFileViewerSelecting([BookStore.booksDirectory])
+    }
+
+    // MARK: - PDF export and printing
 
     func exportPDF() {
-        exportPDF(spec: spec, pages: generator.pages)
+        exportPDF(spec: spec, pages: generator.pages, coverImage: generator.coverImage)
     }
 
     func exportOpenedBookPDF() {
         guard let book = openedBook else { return }
-        let pages = zip(book.subjects, openedBookImages).enumerated().map { index, pair in
-            GeneratedPage(index: index, subject: pair.0, status: .done(pair.1))
-        }
-        exportPDF(spec: book.spec, pages: pages)
+        exportPDF(spec: book.spec, pages: openedBookPages(book), coverImage: BookStore.coverImage(for: book))
     }
 
-    private func exportPDF(spec: BookSpec, pages: [GeneratedPage]) {
+    func printCurrentBook() {
+        printBook(spec: spec, pages: generator.pages, coverImage: generator.coverImage)
+    }
+
+    func printOpenedBook() {
+        guard let book = openedBook else { return }
+        printBook(spec: book.spec, pages: openedBookPages(book), coverImage: BookStore.coverImage(for: book))
+    }
+
+    private func openedBookPages(_ book: SavedBook) -> [GeneratedPage] {
+        zip(book.subjects, openedBookImages).enumerated().map { index, pair in
+            GeneratedPage(index: index, subject: pair.0, status: .done(pair.1))
+        }
+    }
+
+    private func exportPDF(spec: BookSpec, pages: [GeneratedPage], coverImage: Data?) {
         let panel = NSSavePanel()
         panel.allowedContentTypes = [.pdf]
         panel.nameFieldStringValue = "\(spec.title).pdf"
         guard panel.runModal() == .OK, let url = panel.url else { return }
         do {
-            let data = try PDFBuilder.buildPDF(spec: spec, pages: pages)
+            let data = try PDFBuilder.buildPDF(spec: spec, pages: pages, coverImage: coverImage)
             try data.write(to: url)
             NSWorkspace.shared.activateFileViewerSelecting([url])
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+
+    private func printBook(spec: BookSpec, pages: [GeneratedPage], coverImage: Data?) {
+        do {
+            let data = try PDFBuilder.buildPDF(spec: spec, pages: pages, coverImage: coverImage)
+            guard let document = PDFDocument(data: data) else {
+                throw AppError.decoding("Could not prepare the PDF for printing")
+            }
+            let printInfo = NSPrintInfo.shared
+            printInfo.paperSize = NSSize(width: PDFBuilder.a4.width, height: PDFBuilder.a4.height)
+            printInfo.topMargin = 0
+            printInfo.bottomMargin = 0
+            printInfo.leftMargin = 0
+            printInfo.rightMargin = 0
+            document.printOperation(for: printInfo, scalingMode: .pageScaleNone, autoRotate: false)?
+                .run()
         } catch {
             errorMessage = error.localizedDescription
         }

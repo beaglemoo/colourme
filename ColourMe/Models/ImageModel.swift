@@ -4,6 +4,7 @@ struct ImageModel: Identifiable, Hashable, Sendable {
     var id: String
     var name: String?
     var supportedParameters: [String]
+    var resolutionOptions: [String] = []
     var pricePerImageToken: Double?
 
     var displayName: String {
@@ -23,13 +24,17 @@ struct ImageModel: Identifiable, Hashable, Sendable {
         return 4096
     }
 
-    var estimatedPricePerPage: Double? {
+    func estimatedPricePerPage(tier: QualityTier) -> Double? {
+        if let observed = PriceMemory.observedCost(modelID: id, tier: tier) {
+            return observed
+        }
         guard let pricePerImageToken else { return nil }
-        return pricePerImageToken * estimatedTokensPerImage
+        let base = pricePerImageToken * estimatedTokensPerImage
+        return base * tier.estimateMultiplier(supportsQuality: supports("quality"))
     }
 
-    var priceLabel: String? {
-        guard let price = estimatedPricePerPage else { return nil }
+    func priceLabel(tier: QualityTier) -> String? {
+        guard let price = estimatedPricePerPage(tier: tier) else { return nil }
         return String(format: "~$%.3f/page", price)
     }
 

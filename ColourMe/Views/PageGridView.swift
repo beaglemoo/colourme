@@ -31,6 +31,14 @@ struct PageGridView: View {
                     Label("New Book", systemImage: "arrow.backward")
                 }
             }
+            ToolbarItem(placement: .automatic) {
+                Button {
+                    viewModel.printCurrentBook()
+                } label: {
+                    Label("Print", systemImage: "printer")
+                }
+                .disabled(viewModel.generator.pages.allSatisfy { $0.status.imageData == nil })
+            }
             ToolbarItem(placement: .primaryAction) {
                 Button {
                     viewModel.exportPDF()
