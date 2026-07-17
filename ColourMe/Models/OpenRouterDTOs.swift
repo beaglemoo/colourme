@@ -44,9 +44,29 @@ struct ImageModelsResponse: Decodable {
             case id, name
             case supportedParameters = "supported_parameters"
         }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(String.self, forKey: .id)
+            name = try container.decodeIfPresent(String.self, forKey: .name)
+            // The API returns this as a dictionary of parameter name to spec;
+            // tolerate a plain array of names too.
+            if let dict = try? container.decodeIfPresent([String: IgnoredValue].self, forKey: .supportedParameters) {
+                supportedParameters = Array(dict.keys)
+            } else if let names = try? container.decodeIfPresent([String].self, forKey: .supportedParameters) {
+                supportedParameters = names
+            } else {
+                supportedParameters = nil
+            }
+        }
     }
 
     let data: [Item]
+}
+
+/// Decodes successfully against any JSON value while keeping nothing.
+struct IgnoredValue: Decodable {
+    init(from decoder: Decoder) throws {}
 }
 
 // MARK: - Chat completions (page subject ideas)
