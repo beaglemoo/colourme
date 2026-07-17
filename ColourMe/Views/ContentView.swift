@@ -19,6 +19,10 @@ struct ContentView: View {
                 GenerationProgressView(viewModel: viewModel)
             case .preview:
                 PageGridView(viewModel: viewModel)
+            case .library:
+                LibraryView(viewModel: viewModel)
+            case .savedBook:
+                SavedBookView(viewModel: viewModel)
             }
         }
         .alert(

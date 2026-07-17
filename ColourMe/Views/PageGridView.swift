@@ -10,7 +10,7 @@ struct PageGridView: View {
             LazyVGrid(columns: columns, spacing: 24) {
                 ForEach(viewModel.generator.pages) { page in
                     PageThumbnailView(page: page) {
-                        Task { await viewModel.generator.regenerate(pageID: page.id) }
+                        Task { await viewModel.regenerate(pageID: page.id) }
                     }
                 }
             }

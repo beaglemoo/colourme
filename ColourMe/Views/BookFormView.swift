@@ -96,7 +96,7 @@ struct BookFormView: View {
             .frame(maxWidth: 520)
 
             Button {
-                Task { await viewModel.generate() }
+                viewModel.generate()
             } label: {
                 Label("Generate Book", systemImage: "paintpalette")
                     .font(.title3)
@@ -107,6 +107,15 @@ struct BookFormView: View {
             .disabled(!viewModel.canGenerate)
         }
         .padding(40)
+        .toolbar {
+            ToolbarItem(placement: .primaryAction) {
+                Button {
+                    viewModel.openLibrary()
+                } label: {
+                    Label("Library", systemImage: "books.vertical")
+                }
+            }
+        }
         .task { await viewModel.loadModels() }
         .onChange(of: viewModel.hasAPIKey) {
             Task { await viewModel.loadModels() }

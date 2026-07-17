@@ -41,6 +41,11 @@ struct GenerationProgressView: View {
 
             Text("\(viewModel.generator.completedCount) of \(pages.count) pages")
                 .foregroundStyle(.secondary)
+
+            Button("Cancel", role: .cancel) {
+                viewModel.cancelGeneration()
+            }
+            .buttonStyle(.glass)
         }
         .padding(40)
     }
