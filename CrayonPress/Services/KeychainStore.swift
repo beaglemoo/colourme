@@ -2,8 +2,7 @@ import Foundation
 import Security
 
 enum KeychainStore {
-    // Pre-rename identifier kept so existing saved keys still resolve.
-    private static let service = "com.beaglemoo.ColourMe.openrouter"
+    private static let service = "com.beaglemoo.CrayonPress.openrouter"
     private static let account = "api-key"
 
     private static var baseQuery: [String: Any] {
