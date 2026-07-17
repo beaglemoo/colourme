@@ -22,6 +22,7 @@ final class SettingsViewModel {
             try KeychainStore.save(apiKey.trimmingCharacters(in: .whitespacesAndNewlines))
             saveConfirmation = true
             testState = .idle
+            KeyState.shared.refresh()
         } catch {
             testState = .failure(error.localizedDescription)
         }

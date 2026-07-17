@@ -42,13 +42,19 @@ struct BookFormView: View {
                     }
 
                     LabeledContent("Complexity") {
-                        Picker("", selection: $viewModel.complexity) {
-                            ForEach(ComplexityLevel.allCases) { level in
-                                Text(level.displayName).tag(level)
+                        VStack(alignment: .leading, spacing: 4) {
+                            Picker("", selection: $viewModel.complexity) {
+                                ForEach(ComplexityLevel.allCases) { level in
+                                    Text(level.displayName).tag(level)
+                                }
                             }
+                            .pickerStyle(.segmented)
+                            .labelsHidden()
+
+                            Text(viewModel.complexity.subtitle)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
                         }
-                        .pickerStyle(.segmented)
-                        .labelsHidden()
                         .frame(maxWidth: 320)
                     }
 
@@ -90,5 +96,8 @@ struct BookFormView: View {
         }
         .padding(40)
         .task { await viewModel.loadModels() }
+        .onChange(of: viewModel.hasAPIKey) {
+            Task { await viewModel.loadModels() }
+        }
     }
 }

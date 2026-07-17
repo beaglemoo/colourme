@@ -15,7 +15,7 @@ final class BookFormViewModel {
     var stage: Stage = .form
     var theme = ""
     var pageCount = 8
-    var complexity: ComplexityLevel = .youngChild
+    var complexity: ComplexityLevel = .standard
     var childName = ""
     var selectedModelID = UserDefaults.standard.string(forKey: "defaultModelID") ?? Constants.defaultImageModelID
     var availableModels: [ImageModel] = []
@@ -25,7 +25,7 @@ final class BookFormViewModel {
     private let client = OpenRouterClient()
 
     var hasAPIKey: Bool {
-        KeychainStore.load()?.isEmpty == false
+        KeyState.shared.hasKey
     }
 
     var canGenerate: Bool {
@@ -49,7 +49,13 @@ final class BookFormViewModel {
     func loadModels() async {
         guard hasAPIKey, availableModels.isEmpty else { return }
         do {
-            availableModels = try await client.listImageModels()
+            var models = try await client.listImageModels()
+            // Keep the current selection valid even if it is not in the list,
+            // otherwise the picker renders empty.
+            if !models.contains(where: { $0.id == selectedModelID }) {
+                models.insert(.fallback(id: selectedModelID), at: 0)
+            }
+            availableModels = models
         } catch {
             // Non-fatal: the picker falls back to the default model id.
         }
