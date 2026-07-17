@@ -68,6 +68,9 @@ struct OpenRouterClient: Sendable {
         if model.supports("aspect_ratio") { body.aspectRatio = Constants.imageAspectRatio }
         if model.supports("resolution") { body.resolution = Constants.imageResolution }
         if model.supports("seed") { body.seed = seed }
+        // Pin quality: "auto" can silently pick high, which costs ~4x for the
+        // same line art. Medium is plenty for A4 colouring pages.
+        if model.supports("quality") { body.quality = "medium" }
 
         let request = try makeRequest(path: "images", method: "POST", body: body)
         let response: ImagesResponse = try await send(request, retryOnRateLimit: true)

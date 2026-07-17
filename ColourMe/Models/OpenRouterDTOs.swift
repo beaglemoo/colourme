@@ -10,9 +10,10 @@ struct ImagesRequestBody: Encodable {
     var aspectRatio: String?
     var resolution: String?
     var seed: Int?
+    var quality: String?
 
     enum CodingKeys: String, CodingKey {
-        case model, prompt, n, resolution, seed
+        case model, prompt, n, resolution, seed, quality
         case outputFormat = "output_format"
         case aspectRatio = "aspect_ratio"
     }
